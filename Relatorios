@@ -1,0 +1,124 @@
+Sub Relatorios()
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+Application.DisplayAlerts = False
+Dim Caminho As String, Controle As String, Relatorios As String
+Dim senha As String
+senha = Sheets("Início").Range("D4").Value
+'Armazena o caminho onde este arquivo está
+Caminho = ThisWorkbook.FullName
+'Armazena o nome do Controle
+Controle = ThisWorkbook.Name
+'Altera o caminho para reconhecer o arquivo com os relatórios
+Caminho = Replace(Caminho, Controle, "Relatórios.xlsb")
+If Dir(Caminho) = vbNullString Then
+    MsgBox "Não foi possível a atualização do arquivo de relatórios.", vbCritical _
+    + vbOKOnly, "XXXX"
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    Exit Sub
+Else
+    Workbooks.Open (Caminho)
+    'Armazena o nome do arquivo
+    Relatorios = ActiveWorkbook.Name
+    Sheets("SalesReport").Select
+    If ActiveSheet.FilterMode Then
+        ActiveSheet.ShowAllData
+    End If
+    Range("D5").Select
+    Range(Selection, Selection.End(xlToRight)).Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.ClearContents
+    Sheets("Controle").Select
+    If ActiveSheet.FilterMode Then
+        ActiveSheet.ShowAllData
+    End If
+    Cells.Select
+    Selection.ClearContents
+    Windows(Controle).Activate
+    Sheets("SalesRep").Select
+    ActiveSheet.Unprotect Password:=senha
+    If ActiveSheet.FilterMode Then
+        ActiveSheet.ShowAllData
+    End If
+    Sheets("Controle").Select
+    ActiveSheet.Unprotect Password:=senha
+    If ActiveSheet.FilterMode Then
+        ActiveSheet.ShowAllData
+    End If
+    Range("B10").Select
+    Range(Selection, Selection.End(xlToRight)).Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.Copy
+    Windows(Relatorios).Activate
+    Sheets("Controle").Select
+    Range("A1").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Windows(Controle).Activate
+    Sheets("SalesRep").Select
+    Range("C8").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Range(Selection, Selection.End(xlToRight)).Select
+    Selection.Copy
+    Windows(Relatorios).Activate
+    Sheets("SalesReport").Select
+    Range("D5").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Sheets("AnaliseEstoque").Select
+    If ActiveSheet.FilterMode Then
+        ActiveSheet.ShowAllData
+    End If
+    Range("A3:E3").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.ClearContents
+    Range("H3:K3").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.ClearContents
+    Sheets("Controle").Select
+    Range("A2:E2").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.Copy
+    Sheets("AnaliseEstoque").Select
+    Range("A3").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Sheets("Controle").Select
+    Range("V2:Y2").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Selection.Copy
+    Sheets("AnaliseEstoque").Select
+    Range("H3").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    ActiveSheet.ListObjects("tab_analiseEstoque").AutoFilter.ApplyFilter
+    With ActiveWorkbook.Worksheets("AnaliseEstoque").ListObjects( _
+        "tab_analiseEstoque").Sort
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+    End With    
+    Application.Calculate
+    ActiveWorkbook.RefreshAll
+    Caminho = Replace(Caminho, "Relatórios.xlsb", "Arquivo Antigo\")
+    Caminho = Caminho & Format(Now(), "yy") & "." & Format(Now(), "mm") & "." & Format(Now(), "dd") & " h" _
+        & Format(Now(), "Hh") & " m" & Format(Now(), "Nn") & " - Relatórios.xlsb"
+    ActiveWorkbook.SaveCopyAs (Caminho)
+    ActiveWorkbook.Save
+    ActiveWorkbook.Close
+    Windows(Controle).Activate
+    Sheets("SalesRep").Select
+    ActiveSheet.Protect Password:=senha
+    Sheets("Controle").Select
+    ActiveSheet.Protect Password:=senha
+    Sheets("Início").Select
+    MsgBox "Atualização do arquivo de relatórios de análise efetuada com sucesso!", vbOKOnly, "XXXX - Controle"
+End If
+Application.Calculation = xlCalculationAutomatic
+Application.DisplayAlerts = True
+Application.ScreenUpdating = False
+End Sub
