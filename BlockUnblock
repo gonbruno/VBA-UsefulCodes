@@ -1,0 +1,46 @@
+Sub Desbloquear()
+Application.ScreenUpdating = False
+'variável para armazenar a senha que será digitada pelo usuário
+Dim senha As String
+'variável para armazenar o nome de uma planilha
+Dim Plan As Worksheet
+senha = InputBox("Insira a senha para desbloquear as planilhas.", "XXXX - Controle")
+'verifica se a senha coincide com o que está na planilha início. Se estiver correta desbloqueia tudo
+If senha = Sheets("Início").Range("D4").Value Then
+    For Each Plan In ActiveWorkbook.Worksheets
+        Plan.Unprotect Password:=senha
+    Next
+    ActiveWorkbook.Unprotect Password:=senha
+    Sheets("Início").Select
+    MsgBox "Planilhas desbloqueadas.", vbOKOnly, "XXXX - Controle"
+'Se o usuário não digitar nada, sai da rotina
+ElseIf senha = Empty Then
+    Application.ScreenUpdating = True
+    Exit Sub
+Else
+'Se a senha estiver incorreta, mostra a caixa de mensagem
+    MsgBox "Senha incorreta.", vbOKOnly, "XXXX - Controle"
+End If
+Application.ScreenUpdating = True
+End Sub
+
+Sub Bloquear()
+Application.ScreenUpdating = False
+'variável para armazenar a senha que será digitada pelo usuário
+Dim senha As String
+'variável para armazenar o nome de uma planilha
+Dim Plan As Worksheet
+'bloqueia todas as planilhas
+senha = Sheets("Início").Range("D4").Value
+For Each Plan In ActiveWorkbook.Worksheets
+Plan.Protect Password:=senha, DrawingObjects:=True, Contents:=True, Scenarios:= _
+        True, AllowFormattingCells:=True, AllowFormattingColumns:=True, _
+        AllowFormattingRows:=True, AllowSorting:=True, AllowFiltering:=True, _
+        AllowUsingPivotTables:=True, UserInterfaceOnly:=True
+Plan.EnableOutlining = True
+Next Plan
+ActiveWorkbook.Protect Password:=senha, Structure:=True, Windows:=False
+Sheets("Início").Select
+MsgBox "Planilhas bloqueadas.", vbOKOnly, "XXXX - Controle"
+Application.ScreenUpdating = True
+End Sub
