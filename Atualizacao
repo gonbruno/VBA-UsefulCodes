@@ -1,0 +1,484 @@
+Sub Atualizar()
+
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+
+'variável para armazenar a senha que será digitada pelo usuário
+Dim senha As String
+'variável para armazenar o nome de uma planilha
+Dim Plan As Worksheet
+'variável para armazenar o nome deste arquivo
+Dim Controle As String
+'variável para armazenar o nome do arquivo onde estão as planilhas para atualizar o controle
+Dim Atualizacao As String
+'variável para armazenar o nome do arquivo onde estão os relatórios de análise
+Dim Relatorios As String
+'variável para armazenar o caminho desejado
+Dim Caminho As String
+Dim Primeiro_dia_relatorio As Date
+Dim Ultimo_dia_controle As Date
+Dim Mensagem As String
+Dim Coluna As Integer
+Dim Celula As String
+Dim Linha As Long
+Dim Ultima_Linha As Long
+
+'Armazena o caminho onde este arquivo está
+Caminho = ThisWorkbook.FullName
+'Armazena o nome do Controle
+Controle = ThisWorkbook.Name
+'Altera o caminho para reconhecer o arquivo com as planilhas para atualizar o controle
+Caminho = Replace(Caminho, Controle, "Atualização.xlsx")
+
+If Dir(Caminho) = vbNullString Then
+    MsgBox "O arquivo com as novas planilhas para serem atualizadas não foi encontrado, não está nomeado de forma correta ou não está no formato correto (xlsx).", vbCritical _
+    + vbOKOnly, "XXXX"
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
+    Exit Sub
+Else
+    senha = InputBox("Insira a senha para desbloquear as planilhas.", "XXXX")
+    'Verifica se a senha coincide com o que está na planilha início. Se estiver correta desbloqueia tudo e segue com atualização
+    If senha = Sheets("Início").Range("D4").Value Then
+        'Desprotege todas as planilhas do arquivo Controle
+        ActiveWorkbook.Unprotect Password:=senha
+        For Each Plan In ActiveWorkbook.Worksheets
+            Plan.Unprotect Password:=senha
+        Next
+        Sheets("Controle").Select
+        If ActiveSheet.FilterMode Then
+            ActiveSheet.ShowAllData
+        End If
+        ActiveWorkbook.RefreshAll
+        'Abre o arquivo onde há as novas planilhas e já salva uma cópia na pasta arquivos antigos
+        Workbooks.Open (Caminho)
+        Atualizacao = ActiveWorkbook.Name
+        Application.DisplayAlerts = False
+        Caminho = Replace(Caminho, "Atualização.xlsx", "Arquivo Antigo\")
+        Caminho = Caminho & Format(Now(), "yy") & "." & Format(Now(), "mm") & "." & Format(Now(), "dd") & " h" _
+            & Format(Now(), "Hh") & " m" & Format(Now(), "Nn") & " - Atualização.xlsx"
+        ActiveWorkbook.SaveCopyAs (Caminho)
+        Caminho = Replace(Caminho, " - Atualização.xlsx", " - Controle.xlsb")
+        Windows(Controle).Activate
+        ActiveWorkbook.SaveCopyAs (Caminho)
+        Application.DisplayAlerts = True
+        'Copia as informações da planilha de estoque no arquivo Atualização e passa para o Controle
+        On Error GoTo segue
+        Windows(Atualizacao).Activate
+        Sheets("Estoque").Select
+        Mensagem = "Stock / "
+        On Error GoTo 0
+        'Limpa o conteúdo das planilhas no Controle
+        Windows(Controle).Activate
+        Sheets("Stock").Select
+        If ActiveSheet.FilterMode Then
+            ActiveSheet.ShowAllData
+        End If
+        Range("F2:BZ100000").Select
+        Selection.ClearContents
+        Windows(Atualizacao).Activate
+        'Exclui colunas desnecessárias
+        Range("D:F,H:I,X:Y").Select
+        Selection.Delete Shift:=xlToLeft
+        'Exclui todos os itens que não são ITM
+        Range("A1").Select
+        Selection.End(xlDown).Select
+        Ultima_Linha = ActiveCell.Row
+        For Linha = Ultima_Linha To 2 Step -1
+            If Not Cells(Linha, 1).Value Like "*ITM*" Then
+            ActiveSheet.Rows(Linha).Delete
+            End If
+        Next Linha
+        'Copia o que sobrou e cola no Controle
+        Range("A1").Select
+        Range(Selection, Selection.End(xlToRight)).Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Copy
+        Windows(Controle).Activate
+        Range("F1").Select
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+        Application.CutCopyMode = False
+        Range("F1").Select
+        Selection.End(xlDown).Select
+        Linha = ActiveCell.Row
+        ActiveCell.Offset(1, 0).Rows("1:1").EntireRow.Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Delete Shift:=xlUp
+        Range("Stock[[#Headers],[Data Entrada]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+
+10      On Error GoTo segue1
+        Windows(Atualizacao).Activate
+        Sheets("Transito").Select
+        Mensagem = Mensagem & "Import / "
+        On Error GoTo 0
+        Windows(Controle).Activate
+        Sheets("Import").Select
+        If ActiveSheet.FilterMode Then
+            ActiveSheet.ShowAllData
+        End If
+        Range("D7:BZ100000").Select
+        Selection.ClearContents
+        Windows(Atualizacao).Activate
+        'Exclui colunas desnecessárias
+        Range("AA:AE").Select
+        Selection.Delete Shift:=xlToLeft
+        Range("A1").Select
+        Range(Selection, Selection.End(xlToRight)).Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Copy
+        Windows(Controle).Activate
+        Range("D6").Select
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+        Application.CutCopyMode = False
+        Range("D6").Select
+        Selection.End(xlDown).Select
+        Linha = ActiveCell.Row
+        ActiveCell.Offset(1, 0).Rows("1:1").EntireRow.Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Delete Shift:=xlUp
+        Range("Import[[#Headers],[Disponibilidade BR]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+        Range("Import[[#Headers],[Doc Date]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+        Range("Import[[#Headers],[ETA]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+    
+20      On Error GoTo segue2
+        Windows(Atualizacao).Activate
+        Sheets("Back Order").Select
+        Mensagem = Mensagem & "Back Order / "
+        On Error GoTo 0
+        Windows(Controle).Activate
+        Sheets("BO").Select
+        If ActiveSheet.FilterMode Then
+            ActiveSheet.ShowAllData
+        End If
+        Range("E11:BZ100000").Select
+        Selection.ClearContents
+        Windows(Atualizacao).Activate
+        'Exclui todos os itens de CFOP's que não devem ser considerados
+        Range("A1").Select
+        Selection.End(xlDown).Select
+        Ultima_Linha = ActiveCell.Row
+        For Linha = Ultima_Linha To 2 Step -1
+            If Cells(Linha, 18).Value = "6152" Or Cells(Linha, 18).Value = "5152" Or Cells(Linha, 18).Value = "6901" _
+            Or Cells(Linha, 18).Value = "5901" Then
+            ActiveSheet.Rows(Linha).Delete
+            End If
+        Next Linha
+        Range("A1").Select
+        Range(Selection, Selection.End(xlToRight)).Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Copy
+        Windows(Controle).Activate
+        Range("E10").Select
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+        Application.CutCopyMode = False
+        Range("E10").Select
+        Selection.End(xlDown).Select
+        Linha = ActiveCell.Row
+        ActiveCell.Offset(1, 0).Rows("1:1").EntireRow.Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Delete Shift:=xlUp
+        Range("BackOrder[[#Headers],[Data do Lançamento]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+        Range("BackOrder[[#Headers],[Data de Entrega Pedido]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+        Range("BackOrder[[#Headers],[Data de Entrega Linha]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+
+30      On Error GoTo segue3
+        Windows(Atualizacao).Activate
+        Sheets("Produção").Select
+        Mensagem = Mensagem & "Prod / "
+        On Error GoTo 0
+        Rows("1:1").Select
+        If Not ActiveSheet.AutoFilterMode Then
+            Cells.AutoFilter
+        End If
+        Range("A1").Select
+        Coluna = 1
+        Do Until ActiveCell.Value = "Status da linha"
+            ActiveCell.Offset(0, 1).Select
+            Coluna = Coluna + 1
+        Loop
+        ActiveSheet.Range("$A$1:$AZ$100000").AutoFilter Field:=Coluna, Criteria1:="O"
+        Range("A1").Select
+        Coluna = 1
+        Do Until ActiveCell.Value = "Nome do cliente/fornecedor"
+            ActiveCell.Offset(0, 1).Select
+            Coluna = Coluna + 1
+        Loop
+        ActiveSheet.Range("$A$1:$AZ$100000").AutoFilter Field:=Coluna, Criteria1:="*SSAB*"
+        Windows(Controle).Activate
+        Sheets("Prod").Select
+        If ActiveSheet.FilterMode Then
+            ActiveSheet.ShowAllData
+        End If
+        Range("D15:AZ100000").Select
+        Selection.ClearContents
+        Windows(Atualizacao).Activate
+        Range("O:R").Select
+        Selection.Delete Shift:=xlToLeft
+        Range("A1").Select
+        Range(Selection, Selection.End(xlToRight)).Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Copy
+        Windows(Controle).Activate
+        Range("D14").Select
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+        Application.CutCopyMode = False
+        Range("D14").Select
+        Selection.End(xlDown).Select
+        Linha = ActiveCell.Row
+        ActiveCell.Offset(1, 0).Rows("1:1").EntireRow.Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Delete Shift:=xlUp
+        Range("Producao[[#Headers],[Disponibilidade BR]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+        Range("Producao[[#Headers],[Data de lançamento]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+        Range("Producao[[#Headers],[Linha da data de entrega]]").Select
+        Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+        Selection.NumberFormat = "dd/mm/yyyy"
+
+40      On Error GoTo segue4
+        Windows(Atualizacao).Activate
+        Sheets("Sales Report").Select
+        On Error GoTo 0
+        Range("C2").Select
+        Primeiro_dia_relatorio = ActiveCell.Value
+        Windows(Controle).Activate
+        Sheets("SalesRep").Select
+        If ActiveSheet.FilterMode Then
+            ActiveSheet.ShowAllData
+        End If
+        ActiveWorkbook.Worksheets("SalesRep").AutoFilter.Sort.SortFields.Clear
+        ActiveWorkbook.Worksheets("SalesRep").ListObjects("SalesReport").Sort. _
+            SortFields.Add Key:=Range("SalesReport[[#All],[Data de Lançamento]]"), _
+            SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        Range("E8").Select
+        Selection.End(xlDown).Select
+        Ultimo_dia_controle = ActiveCell.Value
+        If Primeiro_dia_relatorio <= Ultimo_dia_controle Then
+            MsgBox "O primeiro lançamento da planilha Sales Report do arquivo Atualização é anterior ao" _
+                & " lançamento mais recente na mesma planilha do arquivo Controle." & vbCrLf & "Portanto, verifique se" _
+                & " há duplicidade entre os dois arquivos. Essa planilha não será atualizada!", _
+                vbOKOnly + vbInformation, "XXXX - Controle"
+        Else
+            Windows(Atualizacao).Activate
+            Sheets("Sales Report").Select
+            Mensagem = Mensagem & "Sales Report / "
+            'Exclui colunas desnecessárias
+            Range("D:F,AD:AL,AN:AX").Select
+            Selection.Delete Shift:=xlToLeft
+            Range("A2:AL2").Select
+            Range(Selection, Selection.End(xlDown)).Select
+            Selection.Copy
+            Windows(Controle).Activate
+            Sheets("SalesRep").Select
+            Range("C8").Select
+            Selection.End(xlDown).Select
+            ActiveCell.Offset(1, 0).Range("A1").Select
+            Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+                :=False, Transpose:=False
+            Application.CutCopyMode = False
+            Range("E8").Select
+            Selection.End(xlDown).Select
+            Linha = ActiveCell.Row
+            Range("SalesReport[[#Headers],[Data de Lançamento]]").Select
+            Range(ActiveCell.Offset(1, 0), ActiveCell.Offset(Linha, 0)).Select
+            Selection.NumberFormat = "dd/mm/yyyy"
+        End If
+
+50      On Error GoTo segue5
+        Windows(Atualizacao).Activate
+        Sheets("Itens").Select
+        Mensagem = Mensagem & "Itens / "
+        On Error GoTo 0
+        Windows(Controle).Activate
+        Sheets("Itm").Select
+        If ActiveSheet.FilterMode Then
+            ActiveSheet.ShowAllData
+        End If
+        Range("B2:AZ100000").Select
+        Selection.ClearContents
+        Windows(Atualizacao).Activate
+        'Exclui todos os itens que não são ITM
+        Range("A1").Select
+        Selection.End(xlDown).Select
+        Ultima_Linha = ActiveCell.Row
+        For Linha = Ultima_Linha To 2 Step -1
+            If Not Cells(Linha, 1).Value Like "*ITM*" Then
+            ActiveSheet.Rows(Linha).Delete
+            End If
+        Next Linha
+        'Exclui todos os itens que não são de estoque
+        Range("A1").Select
+        Selection.End(xlDown).Select
+        Ultima_Linha = ActiveCell.Row
+        For Linha = Ultima_Linha To 2 Step -1
+            If Cells(Linha, 5).Value = "N" Then
+            ActiveSheet.Rows(Linha).Delete
+            End If
+        Next Linha
+        'Exclui colunas desnecessárias
+        Range("E:F,H:L,Q:R,Z:AA").Select
+        Selection.Delete Shift:=xlToLeft
+        Columns("O:O").Select
+        Selection.Delete Shift:=xlToLeft
+        Columns("Q:Q").Select
+        Selection.Delete Shift:=xlToLeft
+        Columns("R:R").Select
+        Selection.Delete Shift:=xlToLeft
+        Range("A1").Select
+        Range(Selection, Selection.End(xlToRight)).Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Copy
+        Windows(Controle).Activate
+        Range("B1").Select
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+        Application.CutCopyMode = False
+        Range("B1").Select
+        Selection.End(xlDown).Select
+        Linha = ActiveCell.Row
+        ActiveCell.Offset(1, 0).Rows("1:1").EntireRow.Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Delete Shift:=xlUp
+            
+60      Application.DisplayAlerts = False
+        Workbooks(Atualizacao).Close
+        Application.DisplayAlerts = True
+        Workbooks(Controle).Activate
+        Application.Calculate
+        ActiveWorkbook.RefreshAll
+        Caminho = Replace(Caminho, " - Controle.xlsb", " - Controle (Liberado).xlsb")
+        ActiveWorkbook.SaveCopyAs (Caminho)
+
+        Workbooks.Open Caminho, ignorereadonlyrecommended:=True
+        Application.Calculation = xlCalculationManual
+        For Each Plan In ActiveWorkbook.Worksheets
+            Plan.Unprotect Password:=senha
+        Next
+        ActiveWorkbook.Unprotect Password:=senha
+        Application.DisplayAlerts = False
+        Sheets("Início").Delete
+        Application.DisplayAlerts = True
+                
+        Sheets("Controle").Select
+        Cells.Select
+        Selection.Copy
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+        
+        Sheets("Itm").Select
+        Cells.Select
+        Selection.Copy
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+        
+        Sheets("Stock").Select
+        Cells.Select
+        Selection.Copy
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+       
+        Sheets("Import").Select
+        Cells.Select
+        Selection.Copy
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+
+        Sheets("Prod").Select
+        Cells.Select
+        Selection.Copy
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+
+        Sheets("BO").Select
+        Cells.Select
+        Selection.Copy
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+
+        Sheets("SalesRep").Select
+        Range("A8:B8").Select
+        Range(Selection, Selection.End(xlDown)).Select
+        Selection.Copy
+        Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+            :=False, Transpose:=False
+
+        Application.Calculate
+        ActiveWorkbook.RefreshAll
+        ActiveWorkbook.Save
+        ActiveWorkbook.Close
+
+        Workbooks(Controle).Activate
+        Application.Calculate
+        ActiveWorkbook.RefreshAll
+        Sheets("Início").Select
+        Range("A2").Select
+        Selection.Value = Now()
+        Range("A4").Select
+        Selection.Value = UsuarioRede
+        ThisWorkbook.Save
+
+        MsgBox "As atualizações das planilhas: " & Mensagem & "foram efetuadas com sucesso!!", vbOKOnly, "XXXX - Controle"
+    
+    'Se o usuário não digitar nada, sai da rotina
+    ElseIf senha = Empty Then
+        Application.Calculation = xlCalculationAutomatic
+        Application.ScreenUpdating = True
+        Exit Sub
+    Else
+    'Se a senha estiver incorreta, mostra a caixa de mensagem
+        MsgBox "Senha incorreta.", vbOKOnly, "XXXX - Controle"
+    End If
+
+Workbooks(Controle).Activate
+For Each Plan In ActiveWorkbook.Worksheets
+    Plan.Protect Password:=Sheets("Início").Range("D4").Value, DrawingObjects:=True, Contents:=True, Scenarios:= _
+        True, AllowFormattingCells:=True, AllowFormattingColumns:=True, _
+        AllowFormattingRows:=True, AllowSorting:=True, AllowFiltering:=True, _
+        AllowUsingPivotTables:=True, UserInterfaceOnly:=True
+    Plan.EnableOutlining = True
+Next
+ActiveWorkbook.Protect Password:=Sheets("Início").Range("D4").Value, Structure:=True, Windows:=False
+Sheets("Início").Select
+
+Application.Calculation = xlCalculationAutomatic
+Application.ScreenUpdating = True
+
+End If
+
+Exit Sub
+
+segue: MsgBox "Não foi localizada a planilha de Estoque no arquivo de Atualização. A atualização das demais planilhas seguirá normalmente.", vbCritical + vbOKOnly, "XXXX - Controle"
+Resume 10
+segue1: MsgBox "Não foi localizada a planilha de Transito no arquivo de Atualização. A atualização das demais planilhas seguirá normalmente.", vbCritical + vbOKOnly, "XXXX - Controle"
+Resume 20
+segue2: MsgBox "Não foi localizada a planilha de Back Order no arquivo de Atualização. A atualização das demais planilhas seguirá normalmente.", vbCritical + vbOKOnly, "XXXX - Controle"
+Resume 30
+segue3: MsgBox "Não foi localizada a planilha de Produção no arquivo de Atualização. A atualização das demais planilhas seguirá normalmente.", vbCritical + vbOKOnly, "XXXX - Controle"
+Resume 40
+segue4: MsgBox "Não foi localizada a planilha de Sales Report no arquivo de Atualização. A atualização das demais planilhas seguirá normalmente.", vbCritical + vbOKOnly, "XXXX - Controle"
+Resume 50
+segue5: MsgBox "Não foi localizada a planilha de Itens no arquivo de Atualização. A atualização das demais planilhas seguirá normalmente.", vbCritical + vbOKOnly, "XXXX - Controle"
+Resume 60
+
+End Sub
