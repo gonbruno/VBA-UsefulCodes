@@ -220,7 +220,7 @@ Else
             ActiveCell.Offset(0, 1).Select
             Coluna = Coluna + 1
         Loop
-        ActiveSheet.Range("$A$1:$AZ$100000").AutoFilter Field:=Coluna, Criteria1:="*SSAB*"
+        ActiveSheet.Range("$A$1:$AZ$100000").AutoFilter Field:=Coluna, Criteria1:="*XXXX*"
         Windows(Controle).Activate
         Sheets("Prod").Select
         If ActiveSheet.FilterMode Then
