@@ -1,0 +1,8 @@
+'Function que retorna o nome do usuário de rede logado
+Function UsuarioRede() As String
+    Dim GetUserN
+    Dim ObjNetwork
+    Set ObjNetwork = CreateObject("WScript.Network")
+    GetUserN = ObjNetwork.UserName
+    UsuarioRede = GetUserN
+End Function
